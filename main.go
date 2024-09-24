@@ -11,12 +11,11 @@ import (
 func main() {
 	router := gin.Default()
 
-	models.ConnectDatabase()
+	models.ConnectRelationalDatabase()
+	models.ConnectRealtimeDatabase()
 
 	router.GET("/api", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "Hello World!",
-		})
+		c.JSON(200, gin.H{"message": "Hello World!"})
 	})
 
 	// Public routes (do not require authentication)
@@ -31,6 +30,15 @@ func main() {
 	protectedRoutes.Use(middleware.AuthenticationMiddleware())
 	{
 		protectedRoutes.GET("/users", handlers.GetUsers)
+		protectedRoutes.POST("/projects", func(c *gin.Context) {
+			handlers.SaveProject(c, models.FirebaseDB)
+		})
+		protectedRoutes.GET("/projects", func(c *gin.Context) {
+			handlers.GetProject(c, models.FirebaseDB)
+		})
+		protectedRoutes.DELETE("/projects", func(c *gin.Context) {
+			handlers.DeleteProject(c, models.FirebaseDB)
+		})
 	}
 
 	router.Run(":3000")

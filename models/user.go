@@ -1,9 +1,8 @@
 package models
 
 type User struct {
-	// mysql driver
-	// ID       int    `json:"id" gorm:"primary_key"`
-	ID       int    `json:"id" gorm:"primaryKey"`
+	// ID       int    `json:"id" gorm:"primary_key"` //mysql driver
+	ID       int    `json:"id" gorm:"primaryKey"` //postgres driver
 	Username string `json:"username"`
 	Password string `json:"-"`
 }

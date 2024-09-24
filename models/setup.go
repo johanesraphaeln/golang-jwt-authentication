@@ -12,7 +12,7 @@ import (
 
 var DB *gorm.DB
 
-func ConnectDatabase() {
+func ConnectRelationalDatabase() {
 	// Load environment variables from .env file
 	if err := godotenv.Load(); err != nil {
 		fmt.Println("error loading .env file")

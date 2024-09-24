@@ -1,10 +1,14 @@
 package handlers
 
 import (
+	"context"
+	"fmt"
 	"golang-jwt-auth/models"
 	"golang-jwt-auth/utils"
+	"log"
 	"net/http"
 
+	"firebase.google.com/go/v4/db"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
@@ -87,7 +91,7 @@ func Register(c *gin.Context) {
 
 	c.JSON(201, gin.H{
 		"success": true,
-		"message": "User Created Successfully",
+		"message": "User Created Successfully in PostgreSQL",
 		"data":    newUser,
 	})
 }
@@ -104,5 +108,87 @@ func GetUsers(c *gin.Context) {
 		"success": true,
 		"message": "Get All Users Successfully",
 		"data":    users,
+	})
+}
+
+type Project struct {
+	Name string `json:"name"`
+}
+
+func SaveProject(c *gin.Context, client *db.Client) {
+	var project Project
+
+	// Bind the JSON input to the project struct
+	if err := c.ShouldBindJSON(&project); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid data"})
+		return
+	}
+
+	// Retrieve the user ID from the context
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		return
+	}
+
+	// create ref at path user_projects/:userId
+	ref := client.NewRef("user_projects/" + fmt.Sprint(userID))
+
+	if err := ref.Set(context.TODO(), map[string]interface{}{
+		"name": project.Name,
+	}); err != nil {
+		log.Fatal(err)
+	}
+
+	c.JSON(201, gin.H{
+		"success": true,
+		"message": "Project Saved Successfully in Firebase",
+		"data":    project,
+	})
+}
+
+func GetProject(c *gin.Context, client *db.Client) {
+	// Retrieve the user ID from the context
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		return
+	}
+
+	// get database reference to user project
+	ref := client.NewRef("user_projects/" + fmt.Sprint(userID))
+
+	// read from user_projects using ref
+	var project Project
+	if err := ref.Get(context.TODO(), &project); err != nil {
+		log.Fatalln("error in reading from firebase DB: ", err)
+	}
+
+	c.JSON(200, gin.H{
+		"success": true,
+		"message": "Project Retrieved Successfully in Firebase",
+		"data":    project,
+	})
+}
+
+func DeleteProject(c *gin.Context, client *db.Client) {
+	// Retrieve the user ID from the context
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
+		return
+	}
+
+	// get database reference to user project
+	ref := client.NewRef("user_projects/" + fmt.Sprint(userID))
+
+	if err := ref.Delete(context.TODO()); err != nil {
+		log.Fatalln("error in deleting ref: ", err)
+	}
+
+	c.JSON(200, gin.H{
+		"success": true,
+		"message": "Project Deleted Successfully in Firebase",
+		"data":    nil,
 	})
 }
